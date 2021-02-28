@@ -17,7 +17,17 @@ import (
 func run() int {
 	pidFileDirFlag := flag.String("d", "", "Directory for pidfile. Defaults to /run.")
 	pidFileFlag := flag.String("f", "", "pidfile name. Defaults to <prog>.pid")
-	acquireTimeoutSecondsFlag := flag.Int64("acquire-timeout-seconds", 0, "Maximum seconds to wait for pifdile lock. Defaults to 0.")
+	acquireTimeoutSecondsFlag := flag.Int64("t", 0, "Maximum seconds to wait for pifdile lock. Defaults to 0.")
+
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "Usage: %s [<option>...] <cmd> [<cmd-arg>...]\n\n", filepath.Base(os.Args[0]))
+		fmt.Fprintf(os.Stderr, "Wrap a process invocation with a pidfile.\n\n")
+		fmt.Fprintf(os.Stderr, "   <cmd>          A program to launch\n")
+		fmt.Fprintf(os.Stderr, "   <cmd-arg>...   Zero or more arguments or options to the launched program\n\n")
+		fmt.Fprintln(os.Stderr, "Options:")
+
+		flag.PrintDefaults()
+	}
 
 	flag.Parse()
 
