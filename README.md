@@ -60,10 +60,10 @@ Options:
 ### Package Usage
 
 
-<!--tmpl,code=markdown:godocdown -->
-# gopidfile
---
-    import "github.com/sammck-go/pidfile"
+<!--tmpl:echo && godocdown -template ./.godocdown.template -->
+```go
+import "github.com/sammck-go/pidfile"
+```
 
 Package gopidfile provides tools for creating pidfiles and associating them with
 running processes. It can be used as a library as part of a daemon, etc., or it
@@ -78,7 +78,7 @@ func PathCombine(pathNames ...string) string
 ```
 PathCombine works just like filepath.Join() except that any absolute path in the
 sequence will throw away all previous items in the sequence. This allows you to
-have default directories that are overridden
+have default directories that are overridden.
 
 #### type Config
 
@@ -96,7 +96,7 @@ constructed object is immutable after it is constructed by NewConfig.
 func NewConfig(opts ...ConfigOption) *Config
 ```
 NewConfig creates a PidFile Config object from provided options. The resulting
-object can be passed to NewPidFile using WithConfig
+object can be passed to NewPidFile using WithConfig.
 
 #### func (*Config) Refine
 
@@ -104,7 +104,7 @@ object can be passed to NewPidFile using WithConfig
 func (cfg *Config) Refine(opts ...ConfigOption) *Config
 ```
 Refine creates a new Config object by applying ConfigOptions to an existing
-config
+config.
 
 #### type ConfigOption
 
@@ -112,8 +112,8 @@ config
 type ConfigOption func(*Config)
 ```
 
-ConfigOption is an opaque configuration option setter created by one of the
-With... functions; it follows the Golang options pattern
+ConfigOption is an opaque configuration option setter created by one of the With
+functions. It follows the Golang "options" pattern.
 
 #### func  WithAcquireTimeout
 
@@ -122,7 +122,7 @@ func WithAcquireTimeout(acquireTimeout time.Duration) ConfigOption
 ```
 WithAcquireTimeout sets the maximum time to wait for exclusive control of the
 pidfile. By default, an error will be returned immediately if the pidfile cannot
-be claimed immediately
+be claimed immediately.
 
 #### func  WithConfig
 
@@ -150,7 +150,7 @@ func WithCreateDirMode(dirMode os.FileMode) ConfigOption
 ```
 WithCreateDirMode sets the mode bits that should be used for newly created
 directories that will contain the pidfile. Defaults to 0755 (read/write for
-owner, read for others). This option also implicitly enables WithCreateDir...
+owner, read for others). This option also implicitly enables WithCreateDir.
 
 #### func  WithDeferPublish
 
@@ -207,7 +207,7 @@ is safe to place on a tmpfs. This is the default setting.
 func WithPid(pid int) ConfigOption
 ```
 WithPid sets the PID that will be placed in the pidfile. By default, the PID of
-the current process is used
+the current process is used.
 
 #### func  WithRetryInterval
 
@@ -215,7 +215,7 @@ the current process is used
 func WithRetryInterval(retryInterval time.Duration) ConfigOption
 ```
 WithRetryInterval sets the time between retries to gain exclusive control of the
-pidfile. By default, 500ms is used
+pidfile. By default, 500ms is used.
 
 #### func  WithoutCreateDir
 
@@ -249,76 +249,164 @@ deleted file. By default, flock is enabled.
 #### type PidFile
 
 ```go
-type PidFile interface {
-
-	// Close closes and deletes the PidFile if is open, and frees any locks. Safe to call
-	// more than once. Once a PidFile is closed, it cannot be reactivated; a new PidFile
-	// must be constructed.
-	Close() error
-
-	// CloseWithContext allows the caller to e.g., stop waiting for Close to complete
-	CloseWithContext(ctx context.Context) error
-
-	// ActivateWithContext does as much as possible to prepare for publishing a pidfile as possible
-	// without knowing the pid or actually publishing. This includes creating the pidfile
-	// directory, claiming an exclusive lock (if enabled), and creating the temporary pidfile
-	// that will be renamed over the pidfile at publishing time.  ctx provides a way for the
-	// caller to abandon waiting for completion.
-	ActivateWithContext(ctx context.Context) error
-
-	// Activate does as much as possible to prepare for publishing a pidfile as possible
-	// without knowing the pid or actually publishing. This includes creating the pidfile
-	// directory, claiming an exclusive lock (if enabled), and creating the temporary pidfile
-	// that will be renamed over the pidfile at publishing time.
-	Activate() error
-
-	// PublishWithPidAndContext finalizes publication of the pidfile with a provided PID. Activation is also
-	// performed if necessary. ctx provides a way for the
-	// caller to abandon waiting for completion.
-	PublishWithPidAndContext(ctx context.Context, pid int) error
-
-	// PublishWithContext finalizes publication of the pidfile with the PID determined at configuration
-	// time. Activation is also performed if necessary. ctx provides a way for the
-	// caller to abandon waiting for completion.
-	PublishWithContext(ctx context.Context) error
-
-	// PublishWithPid finalizes publication of the pidfile with a provided PID. Activation is also
-	// performed if necessary.
-	PublishWithPid(pid int) error
-
-	// Publish finalizes publication of the pidfile with the PID determined at configuration
-	// time. Activation is also performed if necessary.
-	Publish() error
-
-	// StartShutdown begins asynchronous closing of the PidFile if it has not already
-	// started, and specifies an optional error reason to be returned from subsequent calls.
-	// Ignored if closing has already begun
-	StartShutdown(completionErr error)
-
-	// GetPid returns the PID associated with the PidFile
-	GetPid() int
-
-	// GetPathName returns the absolute pathname of the PidFile
-	GetPathName() string
+type PidFile struct {
 }
 ```
 
-PidFile is the public interface to a pidfile
+PidFile is a state machine that manages the lifecycle of a pidfile through
+locking, publishing, destruction and unlocking.
 
 #### func  NewPidFile
 
 ```go
-func NewPidFile(opts ...ConfigOption) (PidFile, error)
+func NewPidFile(opts ...ConfigOption) (*PidFile, error)
 ```
-NewPidFile creates and holds a pidfile from a set of configuration options
+NewPidFile activates and optionally publishes a pidfile from a set of
+configuration options.
 
 #### func  NewPidFileWithContext
 
 ```go
-func NewPidFileWithContext(ctx context.Context, opts ...ConfigOption) (PidFile, error)
+func NewPidFileWithContext(ctx context.Context, opts ...ConfigOption) (*PidFile, error)
 ```
-NewPidFileWithContext creates and holds a pidfile from a set of configuration
-options, and allows a context to be provided for cancellation, etc.
+NewPidFileWithContext activates and optionally publishes a pidfile from a set of
+configuration options, and allows a context to be provided for cancellation,
+etc.
+
+#### func (*PidFile) Activate
+
+```go
+func (pf *PidFile) Activate() error
+```
+Activate does as much as possible to prepare for publishing a pidfile as
+possible without knowing the pid or actually publishing. This includes creating
+the pidfile directory, claiming an exclusive lock (if enabled), and creating the
+temporary pidfile that will be renamed over the pidfile at publishing time.
+
+#### func (*PidFile) ActivateWithContext
+
+```go
+func (pf *PidFile) ActivateWithContext(ctx context.Context) error
+```
+ActivateWithContext does as much as possible to prepare for publishing a pidfile
+as possible without knowing the pid or actually publishing. This includes
+creating the pidfile directory, claiming an exclusive lock (if enabled), and
+creating the temporary pidfile that will be renamed over the pidfile at
+publishing time. ctx provides a way for the caller to abandon waiting for
+completion.
+
+#### func (*PidFile) Close
+
+```go
+func (pf *PidFile) Close() error
+```
+Close shuts down and deletes the PidFile, and waits for completion. Safe to call
+multiple times.
+
+#### func (*PidFile) CloseWithContext
+
+```go
+func (pf *PidFile) CloseWithContext(ctx context.Context) error
+```
+CloseWithContext shuts down and deletes the PidFile, and waits for completion.
+ctx allows the caller to abandon waiting for completion, though once started,
+the pidfile will continue shutting down.
+
+#### func (*PidFile) GetPathName
+
+```go
+func (pf *PidFile) GetPathName() string
+```
+
+#### func (*PidFile) GetPid
+
+```go
+func (pf *PidFile) GetPid() int
+```
+
+#### func (*PidFile) Publish
+
+```go
+func (pf *PidFile) Publish() error
+```
+Publish finalizes publication of the pidfile with the PID determined at
+configuration time. Activation is also performed if necessary.
+
+#### func (*PidFile) PublishWithContext
+
+```go
+func (pf *PidFile) PublishWithContext(ctx context.Context) error
+```
+PublishWithContext finalizes publication of the pidfile with the PID determined
+at configuration time. Activation is also performed if necessary. ctx provides a
+way for the caller to abandon waiting for completion.
+
+#### func (*PidFile) PublishWithPid
+
+```go
+func (pf *PidFile) PublishWithPid(pid int) error
+```
+PublishWithPid finalizes publication of the pidfile with a provided PID.
+Activation is also performed if necessary.
+
+#### func (*PidFile) PublishWithPidAndContext
+
+```go
+func (pf *PidFile) PublishWithPidAndContext(ctx context.Context, pid int) error
+```
+PublishWithPidAndContext finalizes publication of the pidfile with a provided
+PID. Activation is also performed if necessary. ctx provides a way for the
+caller to abandon waiting for completion.
+
+#### func (*PidFile) Shutdown
+
+```go
+func (pf *PidFile) Shutdown(completionErr error) error
+```
+Shutdown shuts down a PidFile and waits for complete shutdown. If not nil,
+completionErr provides a reason for the shutdown that will be returned from
+subsequent API calls. Safe to call multiple times; only the first call's
+completionErr is effective.
+
+#### func (*PidFile) ShutdownWithContext
+
+```go
+func (pf *PidFile) ShutdownWithContext(ctx context.Context, completionErr error) error
+```
+ShutdownWithContext shuts down a PidFile and waits for complete shutdown. If not
+nil, completionErr provides a reason for the shutdown that will be returned from
+subsequent API calls. Safe to call multiple times; only the first call's
+completionErr is effective. ctx allows the caller to abandon waiting for
+completion, though once started, the pidfile will continue shutting down.
+
+#### func (*PidFile) StartShutdown
+
+```go
+func (pf *PidFile) StartShutdown(completionErr error)
+```
+StartShutdown begins shutting down a PidFile if it has not already started
+shutting down. Does not wait for complete shutdown. If not nil, completionErr
+provides a reason for the shutdown that will be returned from subsequent API
+calls. Safe to call multiple times; only the first call is effective.
+
+#### func (*PidFile) WaitForShutdown
+
+```go
+func (pf *PidFile) WaitForShutdown() error
+```
+WaitForShutdown waits for a PidFile to completely shut down complete shutdown.
+It does not initiate shutdown itself. The returned error is the final Close()
+return value, or the context error.
+
+#### func (*PidFile) WaitForShutdownWithContext
+
+```go
+func (pf *PidFile) WaitForShutdownWithContext(ctx context.Context) error
+```
+WaitForShutdownWithContext waits for a PidFile to completely shut down complete
+shutdown. It does not initiate shutdown itself. ctx allows the caller to abandon
+waiting for completion. The returned error is the final Close() return value, or
+the context error.
 <!--/tmpl-->
 
 ### Caveats
@@ -332,8 +420,8 @@ options, and allows a context to be provided for cancellation, etc.
 
 - http://golang.org/doc/code.html
 - http://golang.org/doc/effective_go.html
-- `github.com/sammck-go/pidfile/gopidfile.go` contains the importable package
-- `github.com/sammck-go/pidfile/cmd/with-pidfile` contains the command-line wrapper tool
+- `github.com/sammck-go/pidfile/pidfile.go` contains the importable package
+- `github.com/sammck-go/pidfile/cmd/with-pidfile.go` contains the command-line wrapper tool
 
 ### Changelog
 
