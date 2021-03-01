@@ -11,7 +11,7 @@ import (
 	"syscall"
 	"time"
 
-	pidfile "github.com/sammck/gopidfile"
+	"github.com/sammck-go/pidfile"
 )
 
 func run() int {
