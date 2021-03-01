@@ -2,7 +2,7 @@
 Package gopidfile provides tools for creating pidfiles and associating them with running processes. It can be used
 as a library as part of a daemon, etc., or it can be used standalone as a command line wrapper.
 */
-package gopidfile
+package pidfile
 
 import (
 	"context"
