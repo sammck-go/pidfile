@@ -1,6 +1,6 @@
-# gopidfile
+# pidfile
 
-gopidfile is a simple package for managing pidfiles associated with running processes.
+pidfile is a simple package for managing pidfiles associated with running processes.
 
 ### Features
 
@@ -19,15 +19,15 @@ gopidfile is a simple package for managing pidfiles associated with running proc
 
 **Binaries**
 
-[![Releases](https://img.shields.io/github/release/sammck/gopidfile.svg)](https://github.com/sammck/gopidfile/releases) [![Releases](https://img.shields.io/github/downloads/sammck/gopidfile/total.svg)](https://github.com/sammck/gopidfile/releases)
+[![Releases](https://img.shields.io/github/release/sammck-go/pidfile.svg)](https://github.com/sammck-go/pidfile/releases) [![Releases](https://img.shields.io/github/downloads/sammck-go/pidfile/total.svg)](https://github.com/sammck-go/pidfile/releases)
 
-See [the latest release](https://github.com/sammck/gopidfile/releases/latest)
+See [the latest release](https://github.com/sammck-go/pidfile/releases/latest)
 
 
 **Source**
 
 ```sh
-$ go get -v github.com/sammck/gopidfile
+$ go get -v github.com/sammck-go/pidfile
 ```
 
 
@@ -63,7 +63,7 @@ Options:
 <!--tmpl,code=markdown:godocdown -->
 # gopidfile
 --
-    import "github.com/sammck/gopidfile"
+    import "github.com/sammck-go/pidfile"
 
 Package gopidfile provides tools for creating pidfiles and associating them with
 running processes. It can be used as a library as part of a daemon, etc., or it
@@ -332,8 +332,8 @@ options, and allows a context to be provided for cancellation, etc.
 
 - http://golang.org/doc/code.html
 - http://golang.org/doc/effective_go.html
-- `github.com/sammck/gopidfile/gopidfile.go` contains the importable package
-- `github.com/sammck/gopidfile/cmd/with-pidfile` contains the command-line wrapper tool
+- `github.com/sammck-go/pidfile/gopidfile.go` contains the importable package
+- `github.com/sammck-go/pidfile/cmd/with-pidfile` contains the command-line wrapper tool
 
 ### Changelog
 
